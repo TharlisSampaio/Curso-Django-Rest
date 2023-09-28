@@ -1,22 +1,29 @@
 from rest_framework.serializers import ModelSerializer
-from core.models import PontoTuristico
+from core.models import PontoTuristico, DocIndentificacao
 from atracoes.models import Atracao
 from atracoes.api.serializers import AtracoesSerializer
 from enderecos.api.serializers import EnderecoSerializer
 from enderecos.models import Endereco
 
 
+class DocIdentificacaoSerializer(ModelSerializer):
+    class Meta:
+        model = DocIndentificacao
+        fields = '__all__'
+
+
 class PontoTuristicoSerializer(ModelSerializer):
     # "This list may not be empty." que dizer que o campo é obrigatorio
     atracoes = AtracoesSerializer(many=True)  # read_only=True tira a obrigaroriadade
     endereco = EnderecoSerializer()  # campo relacionado
+    doc_identificacao = DocIdentificacaoSerializer()
     # comentarios = ComentarioSerializer()
     # descricao_completa = SerializerMethodField()
 
     class Meta:
         model = PontoTuristico
         fields = ('id', 'nome', 'descricao', 'aprovado', 'foto',
-                  'atracoes', 'comentarios', 'endereco', 'avaliacoes')
+                  'atracoes', 'comentarios', 'endereco', 'avaliacoes', 'doc_identificacao')
         read_only_fields = ('comentarios', 'avaliacoes')  # campos como somente leitura
 
     def cria_atracoes(self, atracoes, ponto):
@@ -31,11 +38,17 @@ class PontoTuristicoSerializer(ModelSerializer):
         endereco = validated_data['endereco']
         del validated_data['endereco']
 
+        doc = validated_data['doc_identificacao']
+        del validated_data['doc_identificacao']
+
         ponto = PontoTuristico.objects.create(**validated_data)
         self.cria_atracoes(atracoes, ponto)
 
         end = Endereco.objects.create(**endereco)
+        doc = DocIndentificacao.objects.create(**doc)
+
         ponto.endereco = end
+        ponto.doc_identificacao = doc
 
         ponto.save()
 
